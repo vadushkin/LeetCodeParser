@@ -7,7 +7,31 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
-absolute_path = r""
+ABSOLUTE_PATH = r""
+LANGUAGE = "Python3"
+
+DICTIONARY_OF_LANGUAGES_WITH_FILE_EXTENSIONS = {
+    "Python": ".py",
+    "Pytho3": ".py",
+    "Java": ".java",
+    "C": ".c",
+    "C++": ".cpp",
+    "C#": ".cs",
+    "Visual Basic": ".vb",
+    "JavaScript": ".js",
+    "PHP": ".php",
+    "SQL": ".sql",
+    "Objective-C": ".m",
+    "Swift": ".swift",
+    "GO": ".go",
+    "Ruby": ".rb",
+    "Perl": ".pl",
+    "MATLAB": ".m",
+    "R": ".r",
+    "Scala": ".scala",
+    "Kotlin": ".kt",
+    "TypeScript": ".ts"
+}
 
 
 def change_work_directory(path: Path) -> Path:
@@ -25,13 +49,13 @@ def get_html_for_all_problems(all_problems_url: str) -> webdriver.Chrome.page_so
     return html
 
 
-def get_html_for_task(url_: str, language: str) -> webdriver.Chrome.page_source:
+def get_html_for_task(task_url: str, language: str) -> webdriver.Chrome.page_source:
     browser = webdriver.Chrome()
-    browser.get(url_)
+    browser.get(task_url)
 
     time.sleep(7)
 
-    browser.find_element("id", "headlessui-listbox-button-:ri:").click()
+    browser.find_element("xpath", '//*[@id="headlessui-listbox-button-:ri:"]').click()
 
     elements = browser.find_elements("class name", "whitespace-nowrap")
 
@@ -40,7 +64,7 @@ def get_html_for_task(url_: str, language: str) -> webdriver.Chrome.page_source:
             element.click()
             break
 
-    time.sleep(3)
+    time.sleep(5)
 
     html = browser.page_source
     browser.quit()
@@ -55,29 +79,15 @@ def get_data_about_task(html: str):
     data = task_line[1].find("a")
     task_link = "https://leetcode.com" + data.get("href")
     task_name = data.text
-    task_difficulty = task_line[4].find("span").text
 
     return {
         "task_link": task_link,
-        "task_name": task_name,
-        "task_difficulty": task_difficulty
+        "task_name": task_name
     }
 
 
-def get_example_code_for_task(html: BeautifulSoup, one_example: str) -> str:
-    """Return the sample code for task"""
-
-    code = ""
-
-    example_codes = html.find("div", class_="view-lines monaco-mouse-cursor-text").find_all("div", class_="view-line")
-
-    name_of_function = ""
-
-    for index, example_code in enumerate(example_codes):
-        if index == 1:
-            name_of_function += example_code.text.split()[1][:-6]
-
-        code += example_code.text.replace('\xa0', ' ') + "\n"
+def add_to_string_python_code(code: str, name_of_function: str, one_example: str) -> str:
+    """Add to str main function and tests"""
 
     code += " " * 8 + "pass" + "\n\n"
 
@@ -96,6 +106,29 @@ if __name__ == '__main__':
 2. 
 \"\"\"
 """
+    return code
+
+
+def get_example_code_for_task(html: BeautifulSoup, one_example: str) -> str:
+    """Return the sample code for task"""
+
+    code = ""
+
+    example_codes = html.find("div", class_="view-lines monaco-mouse-cursor-text").find_all("div", class_="view-line")
+
+    name_of_function = ""
+
+    for index, example_code in enumerate(example_codes):
+        if index == 1:
+            match LANGUAGE:
+                case "Python3":
+                    name_of_function += example_code.text.split()[1][:-6]
+
+        code += example_code.text.replace('\xa0', ' ') + "\n"
+
+    match LANGUAGE:
+        case "Python3":
+            code = add_to_string_python_code(code, name_of_function, one_example)
 
     return code
 
@@ -145,7 +178,17 @@ def get_description_for_task(html: BeautifulSoup) -> tuple[str, str]:
 def get_description_and_example_code(task_url: str) -> tuple[str, str]:
     """Return a description and an example code"""
 
-    soup = BeautifulSoup(get_html_for_task(task_url, "Python3"), "lxml")
+    soup = None
+
+    for i in range(5):
+        try:
+            soup = BeautifulSoup(get_html_for_task(task_url, LANGUAGE), "lxml")
+            break
+        except NoSuchElementException:
+            pass
+
+    if soup is None:
+        raise Exception("Please retry again!")
 
     description, one_example = get_description_for_task(soup)
     example_code = get_example_code_for_task(soup, one_example)
@@ -154,7 +197,7 @@ def get_description_and_example_code(task_url: str) -> tuple[str, str]:
 
 
 def create_folder_and_files(absolute_path_: str, data: dict):
-    task_link, task_name, task_difficulty = data.get("task_link"), data.get("task_name"), data.get("task_difficulty")
+    task_link, task_name = data.get("task_link"), data.get("task_name")
     task_description, example_code = get_description_and_example_code(task_link)
 
     if not task_link or not task_name or not task_link:
@@ -163,27 +206,39 @@ def create_folder_and_files(absolute_path_: str, data: dict):
     current_directory = Path(absolute_path_)
     os.chdir(current_directory)
 
-    for difficult in current_directory.iterdir():
-        if task_difficulty == difficult.name:
+    for dir_or_file in current_directory.iterdir():
+        if LANGUAGE == "Python3":
+            if "Python" == dir_or_file.name:
+                break
+        elif LANGUAGE == dir_or_file.name:
             break
     else:
-        pathlib.Path(f"{task_difficulty}/").mkdir(parents=True, exist_ok=True)
+        if LANGUAGE == "Python3":
+            pathlib.Path(f"Python/").mkdir(parents=True, exist_ok=True)
+        else:
+            pathlib.Path(f"{LANGUAGE}").mkdir(parents=True, exist_ok=True)
 
-    current_directory = change_work_directory(current_directory / task_difficulty)
+    if LANGUAGE == "Python3":
+        current_directory = change_work_directory(current_directory / "Python")
+    else:
+        current_directory = change_work_directory(current_directory / LANGUAGE)
 
     pathlib.Path(f"{task_name}/").mkdir(parents=True, exist_ok=True)
 
     _ = change_work_directory(current_directory / task_name)
 
-    with open("name_task.py", "w", encoding="utf-8") as file, open("v1.py", "w", encoding="utf-8") as file2:
+    file_extension = DICTIONARY_OF_LANGUAGES_WITH_FILE_EXTENSIONS.get(LANGUAGE, '.py')
+
+    with open("name_task.py", "w", encoding="utf-8") as file:
         file.write(task_description)
-        file2.write(example_code)
+
+    with open(f"v1{file_extension}", "w", encoding="utf-8") as file:
+        file.write(example_code)
 
 
 if __name__ == "__main__":
     try:
         url = "https://leetcode.com/problemset/all/"
-        create_folder_and_files(absolute_path, get_data_about_task(get_html_for_all_problems(url)))
-    except NoSuchElementException as _ex:
+        create_folder_and_files(ABSOLUTE_PATH, get_data_about_task(get_html_for_all_problems(url)))
+    except Exception as _ex:
         print(f"Error: {_ex}.")
-        print(f"Please retry again!")
