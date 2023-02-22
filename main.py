@@ -189,7 +189,7 @@ def get_example_code_for_task(html: BeautifulSoup, one_example: str) -> str:
     name_of_function = ""
 
     for index, example_code in enumerate(example_codes):
-        if index == 1:
+        if example_code.text.strip().split()[0] == "def" and example_code.text.strip().split()[1] != "__init__":
             match LANGUAGE:
                 case "Python3":
                     name_of_function += example_code.text.split()[1][:-6]
