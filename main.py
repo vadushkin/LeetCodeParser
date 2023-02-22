@@ -37,25 +37,57 @@ DICTIONARY_OF_LANGUAGES_WITH_FILE_EXTENSIONS = {
 
 
 def change_work_directory(path: Path) -> Path:
+    """Change work directory"""
+
     current_directory = Path(path)
     os.chdir(current_directory)
+
     return current_directory
 
 
 def get_html_for_all_problems(all_problems_url: str) -> webdriver.Chrome.page_source:
+    """Return html page for all problems"""
+
     browser = webdriver.Chrome()
+
     browser.get(all_problems_url)
+    # download a whole page
     time.sleep(5)
+
+    # get html and exit
     html = browser.page_source
     browser.quit()
+
+    return html
+
+
+def get_html_for_the_next_50_problems(number: int) -> webdriver.Chrome.page_source:
+    """Return html page for one problem"""
+    pagination_number = number // 50 + 1
+
+    url_of_task = f"https://leetcode.com/problemset/all/?page={pagination_number}"
+
+    browser = webdriver.Chrome()
+
+    browser.get(url_of_task)
+    # download a whole page
+    time.sleep(7)
+
+    # get html and exit
+    html = browser.page_source
+    browser.quit()
+
     return html
 
 
 def get_html_for_task(task_url: str, language: str) -> webdriver.Chrome.page_source:
     browser = webdriver.Chrome()
+
     browser.get(task_url)
+    # more size to get a line of an example code
     browser.set_window_size(1500, 1000)
 
+    # sleep for downloading a whole page
     time.sleep(7)
 
     # browser.find_element("xpath", '//*[@id="headlessui-listbox-button-:ri:"]').click()
@@ -64,36 +96,64 @@ def get_html_for_task(task_url: str, language: str) -> webdriver.Chrome.page_sou
     # headlessui-listbox-button-:r1:
     # headlessui-listbox-button-:r4:
     # headlessui-listbox-button-:rs: etc...
+
+    # full xpath because leetcode.
     xpath = "/html/body/div[1]/div/div/div/div/div/div[3]/div/div[1]/div/div/div/div[3]/div[1]/div[1]/div/button"
     browser.find_element("xpath", xpath).click()
 
+    # all buttons of languages
     elements = browser.find_elements("class name", "whitespace-nowrap")
 
+    # search python or java or php
     for element in elements:
         if element.text == language:
             element.click()
             break
 
+    # sleeping
     time.sleep(5)
 
+    # get html and exit
     html = browser.page_source
     browser.quit()
 
     return html
 
 
-def get_data_about_task(html: str):
+def get_link_and_name_of_your_task(html: webdriver.Chrome.page_source, number: int) -> tuple[str, str]:
+    """Get link and name of your task"""
+
     soup = BeautifulSoup(html, "lxml")
+
     tasks_row = soup.find("div", role="rowgroup")
-    task_line = tasks_row.find("div", role="row").find_all("div", class_="mx-2 py-[11px]")
+    # 50 is default pagination
+    task_line = tasks_row.find_all("div", role="row")[number % 50 - 1].find_all("div", class_="mx-2 py-[11px]")
+
     data = task_line[1].find("a")
+
+    # new link for your task
     task_link = "https://leetcode.com" + data.get("href")
     task_name = data.text
 
-    return {
-        "task_link": task_link,
-        "task_name": task_name
-    }
+    return task_link, task_name
+
+
+def get_link_and_name_of_today_task(html: webdriver.Chrome.page_source) -> tuple[str, str]:
+    """Get link and name of today task"""
+
+    soup = BeautifulSoup(html, "lxml")
+
+    tasks_row = soup.find("div", role="rowgroup")
+    task_line = tasks_row.find("div", role="row").find_all("div", class_="mx-2 py-[11px]")
+
+    # first task == daily task
+    data = task_line[1].find("a")
+
+    # new link for daily task
+    task_link = "https://leetcode.com" + data.get("href")
+    task_name = data.text
+
+    return task_link, task_name
 
 
 def add_to_string_python_code(code: str, name_of_function: str, one_example: str) -> str:
@@ -163,6 +223,7 @@ def get_description_for_task(html: BeautifulSoup) -> tuple[str, str]:
     one_example = ""
 
     for index, example in enumerate(examples, 1):
+        # this for v1.py in Solution.name_of_function(-> args <-)
         if index == 1:
             text = example.text.split("\n")[0].split()[1:]
 
@@ -206,8 +267,7 @@ def get_description_and_example_code(task_url: str) -> tuple[str, str]:
     return description, example_code
 
 
-def create_folder_and_files(absolute_path_: str, data: dict):
-    task_link, task_name = data.get("task_link"), data.get("task_name")
+def create_folder_and_files(absolute_path_: str, task_link: str, task_name: str):
     task_description, example_code = get_description_and_example_code(task_link)
 
     if not task_link or not task_name or not task_link:
@@ -266,6 +326,15 @@ def create_folder_and_files(absolute_path_: str, data: dict):
 if __name__ == "__main__":
     try:
         url = "https://leetcode.com/problemset/all/"
-        create_folder_and_files(ABSOLUTE_PATH, get_data_about_task(get_html_for_all_problems(url)))
+
+        # all_problems_html = get_html_for_all_problems(url)
+        # link_of_task, name_of_task = get_link_and_name_of_today_task(all_problems_html)
+
+        number_of_task = 102
+
+        html_of_nearest_50_tasks = get_html_for_the_next_50_problems(number_of_task)
+        link_of_task, name_of_task = get_link_and_name_of_your_task(html_of_nearest_50_tasks, number_of_task)
+
+        create_folder_and_files(ABSOLUTE_PATH, link_of_task, name_of_task)
     except Exception as _ex:
         print(f"Error: {_ex}")
