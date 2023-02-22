@@ -1,13 +1,18 @@
 import os
 import pathlib
 from pathlib import Path
+import sys
 import time
 
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from selenium import webdriver
 
-ABSOLUTE_PATH = r""
-LANGUAGE = "Python3"
+load_dotenv()
+
+ABSOLUTE_PATH = os.getenv("ABSOLUTE_PATH")
+# why just don't language? because it's already taken
+LANGUAGE = os.getenv("YOUR_FAVORITE_LANGUAGE")
 
 NAMES_OF_FOLDERS = {1: "1-100", **{int(f"{i}00"): f"{i}00-{i + 1}00" for i in range(1, 40)}}
 
@@ -259,14 +264,14 @@ def get_description_and_example_code(task_url: str) -> tuple[str, str]:
     return description, example_code
 
 
-def create_folders_and_files(absolute_path_: str, task_link: str, task_name: str):
+def create_folders_and_files(absolute_path: str, task_link: str, task_name: str):
     """Create folders and files"""
     task_description, example_code = get_description_and_example_code(task_link)
 
     if not task_link or not task_name or not task_link:
         return
 
-    current_directory = Path(absolute_path_)
+    current_directory = Path(absolute_path)
     os.chdir(current_directory)
 
     for dir_or_file in current_directory.iterdir():
@@ -318,19 +323,27 @@ def create_folders_and_files(absolute_path_: str, task_link: str, task_name: str
 
 if __name__ == "__main__":
     try:
-        # url = "https://leetcode.com/problemset/all/"
+        if not ABSOLUTE_PATH:
+            raise Exception("Please, fill in the ABSOLUTE_PATH")
 
-        # all_problems_html = get_html_for_all_problems(url)
-        # link_of_task, name_of_task = get_link_and_name_of_today_task(all_problems_html)
+        if not LANGUAGE:
+            raise Exception("Please, fill in the LANGUAGE")
 
-        # number_of_task = 100
+        if not len(sys.argv[1:]):
+            url = "https://leetcode.com/problemset/all/"
 
-        for number_of_task in [1, 16, 50, 100, 236, 400, 1000, 1025, 2000, 2050, 3000, 4000]:
-
-            html_of_nearest_50_tasks = get_html_for_the_next_50_problems(number_of_task)
-            link_of_task, name_of_task = get_link_and_name_of_your_task(html_of_nearest_50_tasks, number_of_task)
+            all_problems_html = get_html_for_all_problems(url)
+            link_of_task, name_of_task = get_link_and_name_of_today_task(all_problems_html)
 
             create_folders_and_files(ABSOLUTE_PATH, link_of_task, name_of_task)
+        else:
+            for number_of_task in sys.argv[1:]:
+                number_of_task = int(number_of_task)
+
+                html_of_nearest_50_tasks = get_html_for_the_next_50_problems(number_of_task)
+                link_of_task, name_of_task = get_link_and_name_of_your_task(html_of_nearest_50_tasks, number_of_task)
+
+                create_folders_and_files(ABSOLUTE_PATH, link_of_task, name_of_task)
 
     except Exception as _ex:
         print(f"Error: {_ex}")
