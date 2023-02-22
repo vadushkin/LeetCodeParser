@@ -12,7 +12,7 @@ git clone https://github.com/vadushkin/LeetCodeParser.git
 #### Change a folder
 
 ```
-cd Parser_for_leetcode
+cd LeetCodeParser
 ```
 
 #### Venv
@@ -30,7 +30,7 @@ Linux:
 
 ```shell
 python3 -m venv venv
-source .\venv\bin\activate
+source venv/bin/activate
 pip3 install --upgrade pip
 pip3 install -r requirements.txt
 ```
