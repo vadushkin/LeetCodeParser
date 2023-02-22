@@ -10,6 +10,8 @@ from selenium.common.exceptions import NoSuchElementException
 ABSOLUTE_PATH = r""
 LANGUAGE = "Python3"
 
+NAMES_OF_FOLDERS = {1: "1-100", **{int(f"{i}00"): f"{i}00-{i + 1}00" for i in range(1, 40)}}
+
 DICTIONARY_OF_LANGUAGES_WITH_FILE_EXTENSIONS = {
     "Python": ".py",
     "Pytho3": ".py",
@@ -52,10 +54,18 @@ def get_html_for_all_problems(all_problems_url: str) -> webdriver.Chrome.page_so
 def get_html_for_task(task_url: str, language: str) -> webdriver.Chrome.page_source:
     browser = webdriver.Chrome()
     browser.get(task_url)
+    browser.set_window_size(1500, 1000)
 
     time.sleep(7)
 
-    browser.find_element("xpath", '//*[@id="headlessui-listbox-button-:ri:"]').click()
+    # browser.find_element("xpath", '//*[@id="headlessui-listbox-button-:ri:"]').click()
+    # this div changes every time             ---------------------------~~--- especially the last letter
+    # for example:
+    # headlessui-listbox-button-:r1:
+    # headlessui-listbox-button-:r4:
+    # headlessui-listbox-button-:rs: etc...
+    xpath = "/html/body/div[1]/div/div/div/div/div/div[3]/div/div[1]/div/div/div/div[3]/div[1]/div[1]/div/button"
+    browser.find_element("xpath", xpath).click()
 
     elements = browser.find_elements("class name", "whitespace-nowrap")
 
@@ -223,17 +233,34 @@ def create_folder_and_files(absolute_path_: str, data: dict):
     else:
         current_directory = change_work_directory(current_directory / LANGUAGE)
 
-    pathlib.Path(f"{task_name}/").mkdir(parents=True, exist_ok=True)
+    task_number = int(task_name.split(".")[0])
 
-    _ = change_work_directory(current_directory / task_name)
+    if task_number and task_number > 100:
+        task_number = task_number // 100 * 100
+    else:
+        task_number = 1
+
+    name_of_folder = NAMES_OF_FOLDERS.get(task_number, "4000+")
+
+    pathlib.Path(f"{name_of_folder}/").mkdir(parents=True, exist_ok=True)
+    current_directory = change_work_directory(current_directory / name_of_folder)
+
+    pathlib.Path(f"{task_name}/").mkdir(parents=True, exist_ok=True)
+    current_directory = change_work_directory(current_directory / task_name)
 
     file_extension = DICTIONARY_OF_LANGUAGES_WITH_FILE_EXTENSIONS.get(LANGUAGE, '.py')
 
-    with open("name_task.py", "w", encoding="utf-8") as file:
-        file.write(task_description)
+    if not os.path.exists(current_directory / "name_task.py"):
+        with open("name_task.py", "w", encoding="utf-8") as file:
+            file.write(task_description)
 
-    with open(f"v1{file_extension}", "w", encoding="utf-8") as file:
-        file.write(example_code)
+    if not os.path.exists(current_directory / "v1.py"):
+        with open(f"v1{file_extension}", "w", encoding="utf-8") as file:
+            file.write(example_code)
+
+    if not os.path.exists(current_directory / "v2.py"):
+        with open(f"v2{file_extension}", "w", encoding="utf-8") as file:
+            file.write(example_code)
 
 
 if __name__ == "__main__":
@@ -241,4 +268,4 @@ if __name__ == "__main__":
         url = "https://leetcode.com/problemset/all/"
         create_folder_and_files(ABSOLUTE_PATH, get_data_about_task(get_html_for_all_problems(url)))
     except Exception as _ex:
-        print(f"Error: {_ex}.")
+        print(f"Error: {_ex}")
