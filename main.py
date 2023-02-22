@@ -5,7 +5,6 @@ import time
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
 
 ABSOLUTE_PATH = r""
 LANGUAGE = "Python3"
@@ -63,7 +62,7 @@ def get_html_for_all_problems(all_problems_url: str) -> webdriver.Chrome.page_so
 
 def get_html_for_the_next_50_problems(number: int) -> webdriver.Chrome.page_source:
     """Return html page for one problem"""
-    pagination_number = number // 50 + 1
+    pagination_number = number // 50 + 1 if number % 50 != 0 else number // 50
 
     url_of_task = f"https://leetcode.com/problemset/all/?page={pagination_number}"
 
@@ -85,7 +84,7 @@ def get_html_for_task(task_url: str, language: str) -> webdriver.Chrome.page_sou
 
     browser.get(task_url)
     # more size to get a line of an example code
-    browser.set_window_size(1500, 1000)
+    browser.set_window_size(1800, 1000)
 
     # sleep for downloading a whole page
     time.sleep(7)
@@ -127,7 +126,8 @@ def get_link_and_name_of_your_task(html: webdriver.Chrome.page_source, number: i
 
     tasks_row = soup.find("div", role="rowgroup")
     # 50 is default pagination
-    task_line = tasks_row.find_all("div", role="row")[number % 50 - 1].find_all("div", class_="mx-2 py-[11px]")
+    index = number % 50 - 1 if number > 50 else number
+    task_line = tasks_row.find_all("div", role="row")[index].find_all("div", class_="mx-2 py-[11px]")
 
     data = task_line[1].find("a")
 
@@ -189,10 +189,11 @@ def get_example_code_for_task(html: BeautifulSoup, one_example: str) -> str:
     name_of_function = ""
 
     for index, example_code in enumerate(example_codes):
-        if example_code.text.strip().split()[0] == "def" and example_code.text.strip().split()[1] != "__init__":
-            match LANGUAGE:
-                case "Python3":
-                    name_of_function += example_code.text.split()[1][:-6]
+        if ex := example_code.text.strip().split():
+            if ex[0] == "def" and ex[1] != "__init__":
+                match LANGUAGE:
+                    case "Python3":
+                        name_of_function += ex[1][:-6]
 
         code += example_code.text.replace('\xa0', ' ') + "\n"
 
@@ -239,7 +240,8 @@ def get_description_for_task(html: BeautifulSoup) -> tuple[str, str]:
     constraints = description.find_all("li")
 
     for index, constraint in enumerate(constraints):
-        complicated_text += "* " + constraint.find("code").text + "\n"
+        if constraint.find("code"):
+            complicated_text += "* " + constraint.find("code").text + "\n"
 
     complicated_text += "\"\"\""
 
@@ -249,17 +251,7 @@ def get_description_for_task(html: BeautifulSoup) -> tuple[str, str]:
 def get_description_and_example_code(task_url: str) -> tuple[str, str]:
     """Return a description and an example code"""
 
-    soup = None
-
-    for i in range(5):
-        try:
-            soup = BeautifulSoup(get_html_for_task(task_url, LANGUAGE), "lxml")
-            break
-        except NoSuchElementException:
-            pass
-
-    if soup is None:
-        raise Exception("Please retry again!")
+    soup = BeautifulSoup(get_html_for_task(task_url, LANGUAGE), "lxml")
 
     description, one_example = get_description_for_task(soup)
     example_code = get_example_code_for_task(soup, one_example)
@@ -267,7 +259,8 @@ def get_description_and_example_code(task_url: str) -> tuple[str, str]:
     return description, example_code
 
 
-def create_folder_and_files(absolute_path_: str, task_link: str, task_name: str):
+def create_folders_and_files(absolute_path_: str, task_link: str, task_name: str):
+    """Create folders and files"""
     task_description, example_code = get_description_and_example_code(task_link)
 
     if not task_link or not task_name or not task_link:
@@ -325,16 +318,19 @@ def create_folder_and_files(absolute_path_: str, task_link: str, task_name: str)
 
 if __name__ == "__main__":
     try:
-        url = "https://leetcode.com/problemset/all/"
+        # url = "https://leetcode.com/problemset/all/"
 
         # all_problems_html = get_html_for_all_problems(url)
         # link_of_task, name_of_task = get_link_and_name_of_today_task(all_problems_html)
 
-        number_of_task = 102
+        # number_of_task = 100
 
-        html_of_nearest_50_tasks = get_html_for_the_next_50_problems(number_of_task)
-        link_of_task, name_of_task = get_link_and_name_of_your_task(html_of_nearest_50_tasks, number_of_task)
+        for number_of_task in [1, 16, 50, 100, 236, 400, 1000, 1025, 2000, 2050, 3000, 4000]:
 
-        create_folder_and_files(ABSOLUTE_PATH, link_of_task, name_of_task)
+            html_of_nearest_50_tasks = get_html_for_the_next_50_problems(number_of_task)
+            link_of_task, name_of_task = get_link_and_name_of_your_task(html_of_nearest_50_tasks, number_of_task)
+
+            create_folders_and_files(ABSOLUTE_PATH, link_of_task, name_of_task)
+
     except Exception as _ex:
         print(f"Error: {_ex}")
