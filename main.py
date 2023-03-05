@@ -41,6 +41,17 @@ DICTIONARY_OF_LANGUAGES_WITH_FILE_EXTENSIONS = {
 }
 
 
+def print_decorator(func):
+    def wrapper(*args, **kwargs):
+        print(f"Function <{func.__name__}> Start!")
+        result = func(*args, **kwargs)
+        print(f"Function <{func.__name__}> Done!")
+        return result
+
+    return wrapper
+
+
+@print_decorator
 def change_work_directory(path: Path) -> Path:
     """Change work directory"""
 
@@ -50,6 +61,7 @@ def change_work_directory(path: Path) -> Path:
     return current_directory
 
 
+@print_decorator
 def get_html_for_all_problems(all_problems_url: str) -> webdriver.Chrome.page_source:
     """Return html page for all problems"""
 
@@ -70,6 +82,7 @@ def get_html_for_all_problems(all_problems_url: str) -> webdriver.Chrome.page_so
     return html
 
 
+@print_decorator
 def get_html_for_the_next_50_problems(number: int) -> webdriver.Chrome.page_source:
     """Return html page for one problem"""
     pagination_number = number // 50 + 1 if number % 50 != 0 else number // 50
@@ -93,6 +106,7 @@ def get_html_for_the_next_50_problems(number: int) -> webdriver.Chrome.page_sour
     return html
 
 
+@print_decorator
 def get_html_for_task(task_url: str, language: str) -> webdriver.Chrome.page_source:
     # hide the window
     options = Options()
@@ -137,6 +151,7 @@ def get_html_for_task(task_url: str, language: str) -> webdriver.Chrome.page_sou
     return html
 
 
+@print_decorator
 def get_link_and_name_of_your_task(html: webdriver.Chrome.page_source, number: int) -> tuple[str, str]:
     """Get link and name of your task"""
 
@@ -156,6 +171,7 @@ def get_link_and_name_of_your_task(html: webdriver.Chrome.page_source, number: i
     return task_link, task_name
 
 
+@print_decorator
 def get_link_and_name_of_today_task(html: webdriver.Chrome.page_source) -> tuple[str, str]:
     """Get link and name of today task"""
 
@@ -174,6 +190,7 @@ def get_link_and_name_of_today_task(html: webdriver.Chrome.page_source) -> tuple
     return task_link, task_name
 
 
+@print_decorator
 def add_to_string_python_code(code: str, name_of_function: str, one_example: str) -> str:
     """Add to str main function and tests"""
 
@@ -197,6 +214,7 @@ if __name__ == '__main__':
     return code
 
 
+@print_decorator
 def get_example_code_for_task(html: BeautifulSoup, one_example: str) -> str:
     """Return the sample code for task"""
 
@@ -222,6 +240,7 @@ def get_example_code_for_task(html: BeautifulSoup, one_example: str) -> str:
     return code
 
 
+@print_decorator
 def get_description_for_task(html: BeautifulSoup) -> tuple[str, str]:
     """Return the description code for task"""
 
@@ -266,6 +285,7 @@ def get_description_for_task(html: BeautifulSoup) -> tuple[str, str]:
     return complicated_text, one_example
 
 
+@print_decorator
 def get_description_and_example_code(task_url: str) -> tuple[str, str]:
     """Return a description and an example code"""
 
@@ -277,6 +297,7 @@ def get_description_and_example_code(task_url: str) -> tuple[str, str]:
     return description, example_code
 
 
+@print_decorator
 def create_folders_and_files(absolute_path: str, task_link: str, task_name: str):
     """Create folders and files"""
     task_description, example_code = get_description_and_example_code(task_link)
@@ -358,5 +379,6 @@ if __name__ == "__main__":
 
                 create_folders_and_files(ABSOLUTE_PATH, link_of_task, name_of_task)
 
+        print("\nSuccess!")
     except Exception as _ex:
         print(f"Error: {_ex}")
