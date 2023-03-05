@@ -7,6 +7,7 @@ import time
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 load_dotenv()
 
@@ -52,7 +53,11 @@ def change_work_directory(path: Path) -> Path:
 def get_html_for_all_problems(all_problems_url: str) -> webdriver.Chrome.page_source:
     """Return html page for all problems"""
 
-    browser = webdriver.Chrome()
+    # hide the window
+    options = Options()
+    options.add_argument("--headless")
+
+    browser = webdriver.Chrome(options=options)
 
     browser.get(all_problems_url)
     # download a whole page
@@ -71,7 +76,11 @@ def get_html_for_the_next_50_problems(number: int) -> webdriver.Chrome.page_sour
 
     url_of_task = f"https://leetcode.com/problemset/all/?page={pagination_number}"
 
-    browser = webdriver.Chrome()
+    # hide the window
+    options = Options()
+    options.add_argument("--headless")
+
+    browser = webdriver.Chrome(options=options)
 
     browser.get(url_of_task)
     # download a whole page
@@ -85,7 +94,11 @@ def get_html_for_the_next_50_problems(number: int) -> webdriver.Chrome.page_sour
 
 
 def get_html_for_task(task_url: str, language: str) -> webdriver.Chrome.page_source:
-    browser = webdriver.Chrome()
+    # hide the window
+    options = Options()
+    options.add_argument("--headless")
+
+    browser = webdriver.Chrome(options=options)
 
     browser.get(task_url)
     # more size to get a line of an example code
